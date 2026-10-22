@@ -186,10 +186,18 @@ window.addEventListener('resize',onResize);
 function startRace() {
   elapsed=0; lane=1; speed=0; finished=false; running=true;
   player.position.set(0,0,3);
-  rivals.forEach((c,i)=>{c.position.set(laneX[(i+1)%3],0,-12-i*12);c.userData.phase=i*1.7});
+  // Alla bilar ställer upp tillsammans; motståndarna står strax framför i sidofilerna.
+  rivals.forEach((c,i)=>{
+    const startLanes=[0,2,0,2];
+    c.position.set(laneX[startLanes[i]],0,-5-i*1.1);
+    c.userData.phase=i*1.7;
+  });
   startScreen.style.display='none';
-  message.innerHTML='KÖR, KÖR, KÖR!<span id="submessage">Du klarar det!</span>';
-  setTimeout(()=>{if(running&&!finished) message.textContent=''},1900);
+  message.innerHTML='3';
+  setTimeout(()=>{if(running&&!finished) message.textContent='2'},650);
+  setTimeout(()=>{if(running&&!finished) message.textContent='1'},1300);
+  setTimeout(()=>{if(running&&!finished) message.innerHTML='KÖR!<span id="submessage">Nu startar racet!</span>'},1950);
+  setTimeout(()=>{if(running&&!finished) message.textContent=''},2700);
 }
 function finishRace() {
   finished=true; running=false;
@@ -208,16 +216,26 @@ function animate(t) {
     player.position.x += (targetX-player.position.x)*Math.min(1,dt*7);
     player.rotation.z=(targetX-player.position.x)*-.055;
     // road and scenery flow toward the player
+    const raceStarted = elapsed > 2.0;
     const flow=(speed?27:19)*dt;
     roadMarks.forEach(m=>{m.position.z+=flow;if(m.position.z>7)m.position.z-=192});
     scenery.forEach(s=>{s.position.z+=flow;if(s.position.z>10)s.position.z-=204});
     rivals.forEach((c,i)=>{
-      c.position.z+=flow*(.58+0.04*Math.sin(elapsed+c.userData.phase));
-      c.position.x=laneX[(i+Math.floor(elapsed/8))%3]+Math.sin(elapsed*.65+c.userData.phase)*.16;
-      if(c.position.z>8) c.position.z=-35-i*8;
+      // Motståndarna håller startpositionerna under nedräkningen.
+      if (raceStarted) {
+        const rivalPace = [0.78,0.92,0.70,0.86][i] + 0.10*Math.sin(elapsed*0.55+c.userData.phase);
+        c.position.z += flow*rivalPace;
+        const laneIndex = (i%2===0 ? 0 : 2);
+        c.position.x += (laneX[laneIndex] + Math.sin(elapsed*.42+c.userData.phase)*.22 - c.position.x)*Math.min(1,dt*1.6);
+        if(c.position.z>7) {
+          // En omkörd bil hamnar bakom och kommer tillbaka längre fram på banan.
+          c.position.z=-24-i*2.5;
+          c.position.x=laneX[laneIndex];
+        }
+      }
     });
-    // The child always finishes first; race is deliberately forgiving.
-    if(elapsed>32) finishRace();
+    // Barnets bil får ett förlåtande lopp och vinner efter cirka 35 sekunder.
+    if(elapsed>35) finishRace();
   }
   // gentle chase camera
   camera.position.x += (player.position.x*.25-camera.position.x)*.035;
