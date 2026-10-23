@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#72c8ff">
-<title>Turbo & Vänner – Version 4</title>
+<title>Turbo & Vänner – Version 5</title>
 <style>
   :root { --ui: rgba(12,25,45,.82); --yellow:#ffe45c; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -56,14 +56,14 @@
     <div style="font-size:54px;margin-bottom:8px">🏎️💨</div>
     <h1>Turbo & Vänner</h1>
     <p>Ett färgglatt raceräventyr! Sväng mellan körfälten, susa förbi kompisbilarna och kör över mållinjen.</p>
-    <p><b>Nyhet i version 4:</b> kör ett mästerskap med tre lopp, samla poäng och mynt och lås upp nya bilar!</p>
+    <p><b>Nyhet i version 5:</b> dina mynt och upplåsta bilar sparas, motståndarna byter körfält smartare och du får ljudeffekter!</p>
     <div class="pickers">
       <label for="trackPick">🏞️ Välj bana<select id="trackPick"><option value="meadow">Gröna ängar</option><option value="desert">Soliga öknen</option><option value="ice">Isiga fjällen</option></select></label>
       <label for="carPick">🚗 Välj bil<select id="carPick"><option value="red">Turbo (gratis)</option><option value="blue" disabled>Blix (20 mynt)</option><option value="purple" disabled>Plommon (40 mynt)</option></select></label>
     </div>
     <div id="garageNote">Vinn lopp för att tjäna 10 mynt. Blix kostar 20 och Plommon 40.</div>
     <button id="startBtn">STARTA MÄSTERSKAPET!</button>
-    <div class="tiny">Version 4 • tre banor • mästerskap • upplåsbara bilar</div>
+    <div class="tiny">Version 5 • sparat garage • smartare rivaler • ljudeffekter</div>
   </div>
 </div>
 <script type="module">
@@ -87,6 +87,14 @@ const coinsHud = document.getElementById('coinsHud');
 let scene, camera, renderer, player, rivals=[], roadMarks=[], scenery=[];
 let running=false, finished=false, lane=1, elapsed=0, lastTime=0, speed=0;
 let raceNumber=1, championshipPoints=0, coins=0, championshipOver=false;
+const SAVE_KEY='turboVanerSaveV5';
+let ownedCars=['red'];
+function loadSave(){ try { const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'{}'); coins=Math.max(0,Number(d.coins)||0); ownedCars=Array.isArray(d.ownedCars)?['red',...d.ownedCars.filter(x=>['blue','purple'].includes(x))]:['red']; } catch(e){ coins=0; ownedCars=['red']; } }
+function saveProgress(){ try { localStorage.setItem(SAVE_KEY,JSON.stringify({coins,ownedCars})); } catch(e){} }
+let audioCtx=null;
+function sfx(freq=660,duration=.12,type='sine'){ try { audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(.0001,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(.12,audioCtx.currentTime+.015); g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+duration); o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration+.02); } catch(e){} }
+function buyOrSelectCar(){ const v=carPick.value; const prices={red:0,blue:20,purple:40}; if(!ownedCars.includes(v)){ if(coins>=prices[v]){coins-=prices[v];ownedCars.push(v);saveProgress();sfx(880,.2,'triangle');updateProgress();garageNote.textContent='🚗 Bilen är köpt och sparad!'; } else {carPick.value='red';garageNote.textContent='Du behöver fler mynt för den bilen.';sfx(180,.15,'square');} } }
+
 let groundMesh=null, roadMesh=null;
 const laneX=[-2.25,0,2.25];
 let finishGate=null, startStripe=null;
@@ -208,7 +216,7 @@ function init() {
   for(let i=0;i<4;i++) {
     const c=makeCar(colors[i][0],colors[i][1]);
     c.position.set(laneX[i],0,-10-i*12);
-    c.userData.baseZ=c.position.z; c.userData.phase=i*1.7;
+    c.userData.baseZ=c.position.z; c.userData.phase=i*1.7; c.userData.targetLane=(i%2===0?0:2); c.userData.nextMove=2+i*1.1;
     scene.add(c); rivals.push(c);
   }
   onResize();
@@ -228,15 +236,18 @@ goBtn.addEventListener('pointerdown',e=>{e.preventDefault();speed=1});
 goBtn.addEventListener('pointerup',()=>speed=0);
 goBtn.addEventListener('pointercancel',()=>speed=0);
 startBtn.addEventListener('click',startRace);
+carPick.addEventListener('change',buyOrSelectCar);
 window.addEventListener('resize',onResize);
 function updateProgress() {
   positionHud.textContent = championshipOver ? '🏆 MÄSTARE!' : `🏁 LOPP ${raceNumber}/3`;
   champHud.textContent = `🏆 Mästerskap: ${championshipPoints} p`;
   coinsHud.textContent = `🪙 ${coins} mynt`;
-  const blue=coins>=20, purple=coins>=40;
-  carPick.querySelector('option[value="blue"]').disabled=!blue;
-  carPick.querySelector('option[value="purple"]').disabled=!purple;
-  garageNote.textContent = `Du har ${coins} mynt. Blix låses upp vid 20 mynt, Plommon vid 40 mynt. Vinn lopp för +10 mynt och +10 poäng!`;
+  const blue=ownedCars.includes('blue'), purple=ownedCars.includes('purple');
+  carPick.querySelector('option[value="blue"]').textContent=blue?'Blix (ägd)':'Blix (köp för 20 mynt)';
+  carPick.querySelector('option[value="purple"]').textContent=purple?'Plommon (ägd)':'Plommon (köp för 40 mynt)';
+  carPick.querySelector('option[value="blue"]').disabled=false;
+  carPick.querySelector('option[value="purple"]').disabled=false;
+  garageNote.textContent = `Du har ${coins} mynt. Välj Blix för 20 mynt eller Plommon för 40 mynt för att köpa bilen. Köp och mynt sparas på den här enheten.`;
 }
 function applyTrack() {
   if(!scene || !groundMesh || !roadMesh) return;
@@ -253,7 +264,7 @@ function applyCar() {
   if(!player) return;
   const cars={red:{body:'#f04438',accent:'#b9edff'},blue:{body:'#2185e8',accent:'#b9edff'},purple:{body:'#8e62d9',accent:'#e7d5ff'}};
   let choice=carPick.value;
-  if(choice==='blue'&&coins<20 || choice==='purple'&&coins<40) { choice='red'; carPick.value='red'; }
+  if(!ownedCars.includes(choice)) { choice='red'; carPick.value='red'; }
   const c=cars[choice]||cars.red;
   // Main body, cabin accent and rear spoiler are the first four meshes.
   if(player.children[0]) player.children[0].material=mat(c.body);
@@ -268,18 +279,18 @@ function startRace() {
   if(finishGate) finishGate.visible=false;
   // Alla fem bilar står sida vid sida på samma startlinje.
   const grid=[-4.5,-2.25,2.25,4.5];
-  rivals.forEach((c,i)=>{ c.position.set(grid[i],0,3); c.userData.phase=i*1.7; });
+  rivals.forEach((c,i)=>{ c.position.set(grid[i],0,3); c.userData.phase=i*1.7; c.userData.targetLane=(i%2===0?0:2); c.userData.nextMove=2+i*1.1; });
   startScreen.style.display='none';
-  message.innerHTML='3';
-  setTimeout(()=>{if(running&&!finished) message.textContent='2'},650);
-  setTimeout(()=>{if(running&&!finished) message.textContent='1'},1300);
-  setTimeout(()=>{if(running&&!finished) message.innerHTML='KÖR!<span id="submessage">Nu startar racet!</span>'},1950);
+  message.innerHTML='3'; sfx(440,.13);
+  setTimeout(()=>{if(running&&!finished){message.textContent='2';sfx(520,.13)}},650);
+  setTimeout(()=>{if(running&&!finished){message.textContent='1';sfx(620,.13)}},1300);
+  setTimeout(()=>{if(running&&!finished){message.innerHTML='KÖR!<span id="submessage">Nu startar racet!</span>';sfx(880,.25,'triangle')}},1950);
   setTimeout(()=>{if(running&&!finished) message.textContent=''},2700);
 }
 function finishRace() {
   if(finished) return;
   finished=true; running=false; speed=0;
-  championshipPoints+=10; coins+=10;
+  championshipPoints+=10; coins+=10; sfx(740,.25,'triangle'); saveProgress();
   const completedRace=raceNumber;
   championshipOver=completedRace>=3;
   updateProgress();
@@ -289,7 +300,7 @@ function finishRace() {
   startScreen.querySelector('.panel p').textContent=championshipOver
     ? `Fantastiskt! Du har kört alla tre lopp och samlat ${championshipPoints} poäng. Du får 10 bonusmynt för mästerskapet!`
     : `Snyggt kört! Lopp ${completedRace} klart. Du fick 10 poäng och 10 mynt. Välj gärna en bana eller bil innan nästa lopp.`;
-  if(championshipOver) { coins+=10; updateProgress(); startBtn.textContent='NYTT MÄSTERSKAP'; }
+  if(championshipOver) { coins+=10; saveProgress(); updateProgress(); sfx(1040,.4,'triangle'); startBtn.textContent='NYTT MÄSTERSKAP'; }
   else { raceNumber++; startBtn.textContent='NÄSTA LOPP'; }
   garageNote.textContent=`Mästerskap: ${championshipPoints} poäng • Mynt: ${coins}. Du kan byta bana och bil mellan loppen.`;
 }
@@ -316,13 +327,12 @@ function animate(t) {
       if (raceStarted) {
         const rivalPace = [0.78,0.92,0.70,0.86][i] + 0.10*Math.sin(elapsed*0.55+c.userData.phase);
         c.position.z += flow*rivalPace;
-        const laneIndex = (i%2===0 ? 0 : 2);
-        c.position.x += (laneX[laneIndex] + Math.sin(elapsed*.42+c.userData.phase)*.22 - c.position.x)*Math.min(1,dt*1.6);
-        if(c.position.z>7) {
-          // En omkörd bil hamnar bakom och kommer tillbaka längre fram på banan.
-          c.position.z=-24-i*2.5;
-          c.position.x=laneX[laneIndex];
-        }
+        // Rivalerna väljer om körfält med jämna mellanrum och väjer ibland undan.
+        if(elapsed>c.userData.nextMove){ c.userData.targetLane=Math.floor(Math.random()*3); c.userData.nextMove=elapsed+2.2+Math.random()*3.2; }
+        const laneIndex=c.userData.targetLane;
+        c.position.x += (laneX[laneIndex] + Math.sin(elapsed*.8+c.userData.phase)*.18 - c.position.x)*Math.min(1,dt*1.9);
+        // Om de kommer förbi spelaren placeras de längre bak och försöker komma ikapp.
+        if(c.position.z>7) { c.position.z=-24-i*2.5; c.userData.targetLane=Math.floor(Math.random()*3); c.position.x=laneX[c.userData.targetLane]; }
       }
     });
     // Mållinjen avgör när racet är klart; ett extra skydd hindrar att loppet fastnar.
@@ -333,6 +343,7 @@ function animate(t) {
   camera.lookAt(player.position.x*.18,1,-7);
   if(renderer) renderer.render(scene,camera);
 }
+loadSave();
 init();
 applyTrack();
 updateProgress();
