@@ -67,7 +67,8 @@ const goBtn = document.getElementById('go');
 
 let scene, camera, renderer, player, rivals=[], roadMarks=[], scenery=[];
 let running=false, finished=false, lane=1, elapsed=0, lastTime=0, speed=0;
-const laneX=[-2.35,0,2.35];
+const laneX=[-2.25,0,2.25];
+let finishGate=null, startStripe=null;
 const mats={};
 
 function mat(color, roughness=.8) {
@@ -132,25 +133,49 @@ function init() {
   const ground=new THREE.Mesh(new THREE.PlaneGeometry(180,220),mat('#66bd62'));
   ground.rotation.x=-Math.PI/2; ground.position.set(0,-.08,-45); scene.add(ground);
 
-  const road=new THREE.Mesh(new THREE.PlaneGeometry(8.2,220),mat('#4a5260'));
+  const road=new THREE.Mesh(new THREE.PlaneGeometry(11.5,220),mat('#4a5260'));
   road.rotation.x=-Math.PI/2; road.position.set(0,0,-45); scene.add(road);
   // road edge stripes
-  for(const x of [-4.05,4.05]) {
+  for(const x of [-5.65,5.65]) {
     const edge=new THREE.Mesh(new THREE.BoxGeometry(.16,.035,220),mat('#fff2c7'));
     edge.position.set(x,.025,-45); scene.add(edge);
   }
   // dashed lane markings
   for(let i=0;i<24;i++) {
-    for(const x of [-1.18,1.18]) {
+    for(const x of [-2.4,0,2.4]) {
       const mark=new THREE.Mesh(new THREE.BoxGeometry(.075,.025,2.1),mat('#fff6c9'));
       mark.position.set(x,.03,-i*8); scene.add(mark); roadMarks.push(mark);
     }
   }
   for(let i=0;i<34;i++) {
     const z=-i*6-3;
-    makeTree(-6.1-(Math.random()*2),z,.75+Math.random()*.55);
-    makeTree(6.1+(Math.random()*2),z,.75+Math.random()*.55);
+    makeTree(-8.1-(Math.random()*1.2),z,.75+Math.random()*.55);
+    makeTree(8.1+(Math.random()*1.2),z,.75+Math.random()*.55);
   }
+  // Colorful grandstands and tiny cheering spectators on both sides
+  for(const side of [-1,1]) {
+    const stand=box(scene,2.1,2.0,150,'#ffca45',side*7.2,1.0,-58);
+    box(scene,2.25,.22,150,'#ed4c65',side*7.2,2.12,-58);
+    const crowdColors=['#ff4b5c','#ffe45c','#2f9bff','#ffffff','#32c875','#a66cff'];
+    for(let row=0;row<3;row++) for(let j=0;j<30;j++) {
+      const spectator=new THREE.Mesh(new THREE.SphereGeometry(.17,8,7),mat(crowdColors[(j+row+(side===1?2:0))%crowdColors.length]));
+      spectator.position.set(side*(6.35+row*.48),1.25+row*.35,-j*4.8-1); scene.add(spectator); scenery.push(spectator);
+    }
+  }
+  // Start grid checker stripe
+  startStripe=new THREE.Group();
+  for(let i=0;i<12;i++) for(let j=0;j<2;j++) {
+    const tile=box(startStripe,.95,.035,.42,(i+j)%2?'#ffffff':'#18202b',-5.25+i*.95,.035,4.7+j*.42);
+  }
+  scene.add(startStripe);
+  // Finish gate is moved into view near the end of the race
+  finishGate=new THREE.Group();
+  box(finishGate,11.7,.22,.38,'#ffffff',0,4.1,0);
+  box(finishGate,.35,4.1,.45,'#ffcf35',-5.45,2,0);
+  box(finishGate,.35,4.1,.45,'#ffcf35',5.45,2,0);
+  for(let i=0;i<18;i++) box(finishGate,.62,.22,.4,i%2?'#20252d':'#ffffff',-5.27+i*.62,4.1,.01);
+  const banner=box(finishGate,4.2,.9,.3,'#f04438',0,3.25,0);
+  finishGate.visible=false; scene.add(finishGate);
   // distant hills
   for(let i=0;i<9;i++) {
     const hill=new THREE.Mesh(new THREE.SphereGeometry(7+Math.random()*5,12,8),mat(['#8bd17c','#6fc56c','#a2dc83'][i%3]));
@@ -161,7 +186,7 @@ function init() {
   const colors=[['#2185e8','#b9edff'],['#ffb629','#fff0a6'],['#8e62d9','#e7d5ff'],['#21b7a5','#c9fff4']];
   for(let i=0;i<4;i++) {
     const c=makeCar(colors[i][0],colors[i][1]);
-    c.position.set(laneX[i%3],0,-10-i*12);
+    c.position.set(laneX[i],0,-10-i*12);
     c.userData.baseZ=c.position.z; c.userData.phase=i*1.7;
     scene.add(c); rivals.push(c);
   }
@@ -186,10 +211,11 @@ window.addEventListener('resize',onResize);
 function startRace() {
   elapsed=0; lane=1; speed=0; finished=false; running=true;
   player.position.set(0,0,3);
-  // Alla bilar ställer upp tillsammans; motståndarna står strax framför i sidofilerna.
+  if(finishGate) finishGate.visible=false;
+  // Alla fem bilar står sida vid sida på samma startlinje.
+  const grid=[-4.5,-2.25,2.25,4.5];
   rivals.forEach((c,i)=>{
-    const startLanes=[0,2,0,2];
-    c.position.set(laneX[startLanes[i]],0,-5-i*1.1);
+    c.position.set(grid[i],0,3);
     c.userData.phase=i*1.7;
   });
   startScreen.style.display='none';
@@ -201,11 +227,11 @@ function startRace() {
 }
 function finishRace() {
   finished=true; running=false;
-  message.innerHTML='🏆 DU VANN! 🏆<span id="submessage">Fantastiskt kört! Du är banans mästare!</span>';
+  message.innerHTML='🏆 DU VANN! 🏆<span id="submessage">🎉 Pokalen är din! Fantastiskt kört! 🎉</span>';
   startScreen.style.display='flex';
-  startScreen.querySelector('h1').textContent='DU VANN!';
-  startScreen.querySelector('.panel p').textContent='Vilket superrace! Alla kompisbilar jublar åt dig.';
-  startBtn.textContent='KÖR IGEN!';
+  startScreen.querySelector('h1').textContent='🏆 DU VANN! 🏆';
+  startScreen.querySelector('.panel p').textContent='🎉 Vilket superrace! Du får en pokal och publiken jublar! 🎉';
+  startBtn.textContent='KÖR IGEN';
 }
 function animate(t) {
   requestAnimationFrame(animate);
@@ -218,6 +244,11 @@ function animate(t) {
     // road and scenery flow toward the player
     const raceStarted = elapsed > 2.0;
     const flow=(speed?27:19)*dt;
+    if(finishGate) {
+      if(elapsed>29 && !finishGate.visible) { finishGate.visible=true; finishGate.position.z=-42; }
+      if(finishGate.visible) { finishGate.position.z+=flow; if(finishGate.position.z>3) finishRace(); }
+    }
+    if(startStripe) { startStripe.position.z=elapsed<2.05?0:220; }
     roadMarks.forEach(m=>{m.position.z+=flow;if(m.position.z>7)m.position.z-=192});
     scenery.forEach(s=>{s.position.z+=flow;if(s.position.z>10)s.position.z-=204});
     rivals.forEach((c,i)=>{
@@ -234,8 +265,8 @@ function animate(t) {
         }
       }
     });
-    // Barnets bil får ett förlåtande lopp och vinner efter cirka 35 sekunder.
-    if(elapsed>35) finishRace();
+    // Mållinjen avgör när racet är klart; ett extra skydd hindrar att loppet fastnar.
+    if(elapsed>38) finishRace();
   }
   // gentle chase camera
   camera.position.x += (player.position.x*.25-camera.position.x)*.035;
