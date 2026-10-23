@@ -1,24 +1,21 @@
-TURBO & VÄNNER – VERSION 3
+TURBO & VÄNNER – VERSION 4
 
-Det här är en färgglad 3D-racingprototyp som går att spela på Android i Chrome eller annan modern webbläsare.
-
-NYTT I VERSION 3
-- Fem bilar står sida vid sida på samma startlinje.
-- Nedräkning 3–2–1–KÖR med gemensam start.
-- Bred, färgglad racingbana med läktare, publik och träd.
-- Tydlig svartvit mållinje med målbåge.
-- Segerfirande med pokal och knappen KÖR IGEN.
-- Stora touchknappar för vänster, gas och höger.
-- Fortsätter med omkörningar och varierande motståndarfarter från version 2.
+NYTT I VERSION 4
+- Mästerskap med tre lopp.
+- Du får 10 poäng och 10 mynt för varje vunnet lopp.
+- Bonus på 10 mynt när du vinner hela mästerskapet.
+- Tre banmiljöer: Gröna ängar, Soliga öknen och Isiga fjällen.
+- Tre bilfärger: Turbo (röd), Blix (blå, låses upp vid 20 mynt) och Plommon (lila, låses upp vid 40 mynt).
+- Du kan välja bana och upplåst bil före varje lopp.
+- Behåller 3–2–1-nedräkning, gemensam start, omkörningar, touchkontroller, målbåge, pokal och kör-igen-flöde.
 
 SÅ TESTAR DU PÅ ANDROID
 1. Ladda ner ZIP-filen och packa upp den med telefonens filhanterare.
-2. Öppna mappen Turbo_och_Vanner.
-3. Öppna index.html i Chrome. Om filen inte går att öppna direkt, ladda upp index.html till ditt befintliga GitHub-repository och öppna projektets GitHub Pages-adress.
-4. Tryck STARTA RACET! och använd knapparna på skärmen.
+2. Öppna index.html i din befintliga webbpublicering, exempelvis GitHub Pages. Ersätt den gamla index.html med den nya och publicera ändringen.
+3. Öppna spelsidan i Chrome och tryck STARTA MÄSTERSKAPET!
+4. Använd vänster, gas och höger. När du vinner ett lopp får du poäng och mynt; välj bana och bil inför nästa lopp.
 
 VIKTIGT
-- Detta är ett webbläsarspel, inte en installerbar APK-fil.
+- Detta är ett webbläsarspel, inte en installerbar APK.
 - Internet behövs för att ladda Three.js från CDN.
-- Om du använder GitHub Pages: ersätt din gamla index.html med den här versionen och publicera ändringen.
-- Bilarna är enkla, egna tecknade 3D-figurer.
+- Version 4 är en prototyp. JavaScript-syntaxen och ZIP-innehållet kontrolleras, men testa gärna i din Android-webbläsare och berätta om något beter sig oväntat.
