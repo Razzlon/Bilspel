@@ -1,20 +1,20 @@
-TURBO & VÄNNER – VERSION 5
+TURBO & VÄNNER – VERSION 6
 
-NYTT I VERSION 5
-- Mynt och köpta bilar sparas på samma enhet i webbläsaren.
-- Garage: välj Blix för 20 mynt eller Plommon för 40 mynt för att köpa bilen.
-- Smartare rivaler byter körfält och försöker ta sig tillbaka in i loppet.
-- Ljudeffekter för nedräkning, start och seger (ljud aktiveras när du trycker på start).
-- Mästerskap med tre lopp, tre banmiljöer, touchkontroller och målgång finns kvar från version 4.
+INSTALLATION
+1. Packa upp ZIP-filen.
+2. Lägg upp index.html där du publicerar spelet (ersätt den gamla index.html).
+3. Öppna spelsidan i webbläsaren på Android. Spelet behöver internet för att ladda Three.js från CDN.
 
-SÅ TESTAR DU PÅ ANDROID
-1. Ladda ner ZIP-filen och packa upp den med telefonens filhanterare.
-2. Öppna din befintliga webbpublicering, exempelvis GitHub Pages, och ersätt den gamla index.html med index.html från ZIP-filen. Publicera ändringen.
-3. Öppna spelsidan i Chrome och tryck STARTA MÄSTERSKAPET!
-4. Använd vänster, gas och höger. När du har tillräckligt med mynt väljer du en låst bil för att köpa den.
+NYTT I VERSION 6
+- Turbo-knapp under loppet: ger en kort fartökning och laddas om efter några sekunder.
+- Motoruppgradering: förbättrar farten.
+- Väghållningsuppgradering: bilen byter körfält snabbare.
+- Uppgraderingarna sparas tillsammans med mynt och köpta bilar.
+- Fem nivåer för motor och väghållning; priset ökar med nivån.
+- Tre banor, tre lopp i mästerskapet, rivaler, nedräkning och ljudeffekter från version 5.
 
-VIKTIGT
-- Detta är ett webbläsarspel, inte en installerbar APK.
-- Internet behövs för att ladda Three.js från CDN.
-- Sparade mynt och bilar lagras lokalt i webbläsaren på den enhet där du spelar. Om du rensar webbplatsdata kan sparningen försvinna.
-- ZIP-innehåll och grundläggande JavaScript-struktur har kontrollerats, men prova gärna spelet på din Android och säg till om något inte fungerar.
+TIPS
+- Tjäna mynt genom att vinna lopp.
+- Använd garageknapparna mellan loppen för att köpa uppgraderingar.
+- Håll GASA intryckt och tryck TURBO när du vill få extra fart.
+- Sparade framsteg ligger i webbläsarens lokala lagring på samma enhet och webbplats.

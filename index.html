@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#72c8ff">
-<title>Turbo & Vänner – Version 5</title>
+<title>Turbo & Vänner – Version 6</title>
 <style>
   :root { --ui: rgba(12,25,45,.82); --yellow:#ffe45c; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -27,6 +27,10 @@
   .control { pointer-events:auto; border:3px solid white; border-radius:22px; background:rgba(15,38,64,.76); color:white; font-size:clamp(25px,7vw,38px); font-weight:900; min-width:74px; min-height:74px; box-shadow:0 5px 0 rgba(0,0,0,.25); }
   .control:active { transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.25); }
   #go { background:#ffb629; color:#382000; min-width:104px; font-size:17px; }
+  #turbo { background:rgba(255,83,38,.9); color:white; min-width:82px; font-size:14px; }
+  #turbo:disabled { opacity:.55; }
+  .upgradeRow { display:flex; gap:8px; margin:8px 0 10px; }
+  .upgradeRow button { flex:1; border:0; border-radius:12px; padding:10px 6px; background:#dff3ff; color:#173047; font-weight:900; font-size:12px; }
   #start { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:24px; background:linear-gradient(#4dbbff55,#17304788); }
   .panel { max-width:430px; width:100%; background:rgba(255,255,255,.96); color:#173047; border:4px solid white; border-radius:28px; padding:24px 20px; text-align:center; box-shadow:0 12px 35px #1238; }
   .panel h1 { margin:0 0 8px; font-size:clamp(27px,8vw,39px); line-height:1; }
@@ -49,6 +53,7 @@
 <div id="controls" aria-label="Spelkontroller">
   <button class="control" id="left" aria-label="Sväng vänster">◀</button>
   <button class="control" id="go" aria-label="Kör">GASA! 🚗</button>
+  <button class="control" id="turbo" aria-label="Turbo boost">⚡ TURBO</button>
   <button class="control" id="right" aria-label="Sväng höger">▶</button>
 </div>
 <div id="start">
@@ -56,14 +61,15 @@
     <div style="font-size:54px;margin-bottom:8px">🏎️💨</div>
     <h1>Turbo & Vänner</h1>
     <p>Ett färgglatt raceräventyr! Sväng mellan körfälten, susa förbi kompisbilarna och kör över mållinjen.</p>
-    <p><b>Nyhet i version 5:</b> dina mynt och upplåsta bilar sparas, motståndarna byter körfält smartare och du får ljudeffekter!</p>
+    <p><b>Version 6:</b> tryck på TURBO under loppet för en fartboost. Uppgradera motor och väghållning med dina mynt!</p>
     <div class="pickers">
       <label for="trackPick">🏞️ Välj bana<select id="trackPick"><option value="meadow">Gröna ängar</option><option value="desert">Soliga öknen</option><option value="ice">Isiga fjällen</option></select></label>
       <label for="carPick">🚗 Välj bil<select id="carPick"><option value="red">Turbo (gratis)</option><option value="blue" disabled>Blix (20 mynt)</option><option value="purple" disabled>Plommon (40 mynt)</option></select></label>
     </div>
-    <div id="garageNote">Vinn lopp för att tjäna 10 mynt. Blix kostar 20 och Plommon 40.</div>
+    <div class="upgradeRow"><button id="engineBtn">⚙️ Motor nivå 1<br>Uppgradera: 25 🪙</button><button id="handlingBtn">🛞 Väghållning nivå 1<br>Uppgradera: 25 🪙</button></div>
+    <div id="garageNote">Vinn lopp för att tjäna mynt. Köp bil och uppgradera den här!</div>
     <button id="startBtn">STARTA MÄSTERSKAPET!</button>
-    <div class="tiny">Version 5 • sparat garage • smartare rivaler • ljudeffekter</div>
+    <div class="tiny">Version 6 • turbo • biluppgraderingar • sparade framsteg</div>
   </div>
 </div>
 <script type="module">
@@ -77,6 +83,9 @@ const message = document.getElementById('message');
 const leftBtn = document.getElementById('left');
 const rightBtn = document.getElementById('right');
 const goBtn = document.getElementById('go');
+const turboBtn = document.getElementById('turbo');
+const engineBtn = document.getElementById('engineBtn');
+const handlingBtn = document.getElementById('handlingBtn');
 const trackPick = document.getElementById('trackPick');
 const carPick = document.getElementById('carPick');
 const garageNote = document.getElementById('garageNote');
@@ -87,10 +96,12 @@ const coinsHud = document.getElementById('coinsHud');
 let scene, camera, renderer, player, rivals=[], roadMarks=[], scenery=[];
 let running=false, finished=false, lane=1, elapsed=0, lastTime=0, speed=0;
 let raceNumber=1, championshipPoints=0, coins=0, championshipOver=false;
-const SAVE_KEY='turboVanerSaveV5';
+let engineLevel=1, handlingLevel=1, turboUntil=0, turboReadyAt=0;
+const SAVE_KEY='turboVanerSaveV6';
 let ownedCars=['red'];
-function loadSave(){ try { const d=JSON.parse(localStorage.getItem(SAVE_KEY)||'{}'); coins=Math.max(0,Number(d.coins)||0); ownedCars=Array.isArray(d.ownedCars)?['red',...d.ownedCars.filter(x=>['blue','purple'].includes(x))]:['red']; } catch(e){ coins=0; ownedCars=['red']; } }
-function saveProgress(){ try { localStorage.setItem(SAVE_KEY,JSON.stringify({coins,ownedCars})); } catch(e){} }
+function loadSave(){ try { const d=JSON.parse(localStorage.getItem(SAVE_KEY)||localStorage.getItem('turboVanerSaveV5')||'{}'); coins=Math.max(0,Number(d.coins)||0); ownedCars=Array.isArray(d.ownedCars)?['red',...d.ownedCars.filter(x=>['blue','purple'].includes(x))]:['red']; engineLevel=Math.max(1,Math.min(5,Number(d.engineLevel)||1)); handlingLevel=Math.max(1,Math.min(5,Number(d.handlingLevel)||1)); } catch(e){ coins=0; ownedCars=['red']; engineLevel=1; handlingLevel=1; } }
+function saveProgress(){ try { localStorage.setItem(SAVE_KEY,JSON.stringify({coins,ownedCars,engineLevel,handlingLevel})); } catch(e){} }
+function upgrade(which){ const level=which==='engine'?engineLevel:handlingLevel; const cost=25*level; if(level>=5){garageNote.textContent='Den uppgraderingen är redan på maxnivå!';return;} if(coins<cost){garageNote.textContent=`Du behöver ${cost} mynt för nästa uppgradering.`;sfx(180,.15,'square');return;} coins-=cost; if(which==='engine')engineLevel++;else handlingLevel++; saveProgress();updateProgress();sfx(920,.18,'triangle');garageNote.textContent='Uppgradering köpt och sparad!'; }
 let audioCtx=null;
 function sfx(freq=660,duration=.12,type='sine'){ try { audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); const o=audioCtx.createOscillator(), g=audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(.0001,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(.12,audioCtx.currentTime+.015); g.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+duration); o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration+.02); } catch(e){} }
 function buyOrSelectCar(){ const v=carPick.value; const prices={red:0,blue:20,purple:40}; if(!ownedCars.includes(v)){ if(coins>=prices[v]){coins-=prices[v];ownedCars.push(v);saveProgress();sfx(880,.2,'triangle');updateProgress();garageNote.textContent='🚗 Bilen är köpt och sparad!'; } else {carPick.value='red';garageNote.textContent='Du behöver fler mynt för den bilen.';sfx(180,.15,'square');} } }
@@ -235,6 +246,9 @@ rightBtn.addEventListener('pointerdown',e=>{e.preventDefault();moveLane(1)});
 goBtn.addEventListener('pointerdown',e=>{e.preventDefault();speed=1});
 goBtn.addEventListener('pointerup',()=>speed=0);
 goBtn.addEventListener('pointercancel',()=>speed=0);
+turboBtn.addEventListener('pointerdown',e=>{e.preventDefault(); if(running&&!finished&&performance.now()/1000>=turboReadyAt){turboUntil=performance.now()/1000+2.4;turboReadyAt=performance.now()/1000+7;sfx(330,.18,'sawtooth');setTimeout(()=>sfx(660,.16,'triangle'),100);}});
+engineBtn.addEventListener('click',()=>upgrade('engine'));
+handlingBtn.addEventListener('click',()=>upgrade('handling'));
 startBtn.addEventListener('click',startRace);
 carPick.addEventListener('change',buyOrSelectCar);
 window.addEventListener('resize',onResize);
@@ -247,7 +261,9 @@ function updateProgress() {
   carPick.querySelector('option[value="purple"]').textContent=purple?'Plommon (ägd)':'Plommon (köp för 40 mynt)';
   carPick.querySelector('option[value="blue"]').disabled=false;
   carPick.querySelector('option[value="purple"]').disabled=false;
-  garageNote.textContent = `Du har ${coins} mynt. Välj Blix för 20 mynt eller Plommon för 40 mynt för att köpa bilen. Köp och mynt sparas på den här enheten.`;
+  engineBtn.innerHTML = engineLevel>=5 ? `⚙️ Motor MAX` : `⚙️ Motor nivå ${engineLevel}<br>Uppgradera: ${25*engineLevel} 🪙`;
+  handlingBtn.innerHTML = handlingLevel>=5 ? `🛞 Väghållning MAX` : `🛞 Väghållning nivå ${handlingLevel}<br>Uppgradera: ${25*handlingLevel} 🪙`;
+  garageNote.textContent = `Mynt: ${coins} • Motor ${engineLevel}/5 • Väghållning ${handlingLevel}/5. Uppgraderingar och bilar sparas på enheten.`;
 }
 function applyTrack() {
   if(!scene || !groundMesh || !roadMesh) return;
@@ -276,6 +292,7 @@ function startRace() {
   applyTrack(); applyCar(); updateProgress();
   elapsed=0; lane=1; speed=0; finished=false; running=true;
   player.position.set(0,0,3);
+  turboUntil=0; turboReadyAt=0; turboBtn.textContent='⚡ TURBO';
   if(finishGate) finishGate.visible=false;
   // Alla fem bilar står sida vid sida på samma startlinje.
   const grid=[-4.5,-2.25,2.25,4.5];
@@ -302,7 +319,7 @@ function finishRace() {
     : `Snyggt kört! Lopp ${completedRace} klart. Du fick 10 poäng och 10 mynt. Välj gärna en bana eller bil innan nästa lopp.`;
   if(championshipOver) { coins+=10; saveProgress(); updateProgress(); sfx(1040,.4,'triangle'); startBtn.textContent='NYTT MÄSTERSKAP'; }
   else { raceNumber++; startBtn.textContent='NÄSTA LOPP'; }
-  garageNote.textContent=`Mästerskap: ${championshipPoints} poäng • Mynt: ${coins}. Du kan byta bana och bil mellan loppen.`;
+  garageNote.textContent=`Mästerskap: ${championshipPoints} poäng • Mynt: ${coins}. Motor ${engineLevel}/5 och väghållning ${handlingLevel}/5.`;
 }
 function animate(t) {
   requestAnimationFrame(animate);
@@ -310,11 +327,14 @@ function animate(t) {
   if(running && !finished) {
     elapsed+=dt;
     const targetX=laneX[lane];
-    player.position.x += (targetX-player.position.x)*Math.min(1,dt*7);
+    player.position.x += (targetX-player.position.x)*Math.min(1,dt*(7+handlingLevel*1.15));
     player.rotation.z=(targetX-player.position.x)*-.055;
     // road and scenery flow toward the player
     const raceStarted = elapsed > 2.0;
-    const flow=(speed?27:19)*dt;
+    const nowSec=performance.now()/1000;
+    const turboActive=nowSec<turboUntil;
+    const flow=(speed?27:19)*(1+(engineLevel-1)*0.045+(turboActive?0.72:0))*dt;
+    turboBtn.textContent=turboActive?'⚡ BOOST!':(nowSec<turboReadyAt?`⚡ ${Math.ceil(turboReadyAt-nowSec)}s`:'⚡ TURBO');
     if(finishGate) {
       if(elapsed>29 && !finishGate.visible) { finishGate.visible=true; finishGate.position.z=-42; }
       if(finishGate.visible) { finishGate.position.z+=flow; if(finishGate.position.z>3) finishRace(); }
