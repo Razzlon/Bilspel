@@ -1,20 +1,18 @@
-TURBO & VÄNNER – VERSION 6
+TURBO & VÄNNER – VERSION 7
 
-INSTALLATION
-1. Packa upp ZIP-filen.
-2. Lägg upp index.html där du publicerar spelet (ersätt den gamla index.html).
-3. Öppna spelsidan i webbläsaren på Android. Spelet behöver internet för att ladda Three.js från CDN.
+NYTT I VERSION 7
+- Tre ovala banmiljöer: stor ovalarena med publik, strand med hav och parasoller, samt äventyrsskog.
+- Alla fem bilar finns med från start och kör vidare under hela loppet. Inga nya motståndarbilar ska plötsligt dyka upp framför dig.
+- Kollisioner mellan spelarens bil och motståndarna samt mellan motståndarbilarna.
+- Start-/mållinje på ovalen, tre körspår, turbo, bilval, mynt, motor- och väghållningsuppgraderingar och mästerskap finns kvar.
 
-NYTT I VERSION 6
-- Turbo-knapp under loppet: ger en kort fartökning och laddas om efter några sekunder.
-- Motoruppgradering: förbättrar farten.
-- Väghållningsuppgradering: bilen byter körfält snabbare.
-- Uppgraderingarna sparas tillsammans med mynt och köpta bilar.
-- Fem nivåer för motor och väghållning; priset ökar med nivån.
-- Tre banor, tre lopp i mästerskapet, rivaler, nedräkning och ljudeffekter från version 5.
+SÅ UPPDATERAR DU SPELET
+1. Ladda ner ZIP-filen och packa upp den.
+2. Öppna din befintliga spelmapp där du har lagt upp Turbo & Vänner.
+3. Ersätt den gamla index.html med index.html från den nya ZIP-filen.
+4. Ladda om spelsidan på mobilen. Om du inte ser ändringarna, prova att ladda om sidan igen.
 
-TIPS
-- Tjäna mynt genom att vinna lopp.
-- Använd garageknapparna mellan loppen för att köpa uppgraderingar.
-- Håll GASA intryckt och tryck TURBO när du vill få extra fart.
-- Sparade framsteg ligger i webbläsarens lokala lagring på samma enhet och webbplats.
+VIKTIGT
+- Spelet använder Three.js från ett CDN och behöver internet när spelet laddas.
+- Sparade mynt, bilar och uppgraderingar lagras lokalt i webbläsaren. Eftersom sparnyckeln ändras i den här versionen kan äldre sparning behöva finnas kvar i webbläsaren; version 7 försöker inte radera den gamla sparningen.
+- ZIP-filen och JavaScript-syntaxen har kontrollerats. En fullständig provkörning på en fysisk Android-mobil är inte gjord, så testa gärna alla tre banorna och kollisionerna efter uppdateringen.
