@@ -1,10 +1,11 @@
-TURBO & VÄNNER – VERSION 7
+TURBO & VÄNNER – VERSION 8
 
-NYTT I VERSION 7
-- Tre ovala banmiljöer: stor ovalarena med publik, strand med hav och parasoller, samt äventyrsskog.
-- Alla fem bilar finns med från start och kör vidare under hela loppet. Inga nya motståndarbilar ska plötsligt dyka upp framför dig.
-- Kollisioner mellan spelarens bil och motståndarna samt mellan motståndarbilarna.
-- Start-/mållinje på ovalen, tre körspår, turbo, bilval, mynt, motor- och väghållningsuppgraderingar och mästerskap finns kvar.
+NYTT I VERSION 8
+- Vänster- och högerknapparna sitter tillsammans på vänster sida av skärmen.
+- Turbo-knappen sitter ensam på höger sida.
+- Gasa-knappen är borttagen: bilen kör automatiskt under loppet.
+- Sparade mynt, bilar och uppgraderingar från version 7 eller äldre versioner kan läsas in.
+- Alla banor, mästerskap, motståndarbilar, kollisioner och uppgraderingar från version 7 finns kvar.
 
 SÅ UPPDATERAR DU SPELET
 1. Ladda ner ZIP-filen och packa upp den.
@@ -14,5 +15,5 @@ SÅ UPPDATERAR DU SPELET
 
 VIKTIGT
 - Spelet använder Three.js från ett CDN och behöver internet när spelet laddas.
-- Sparade mynt, bilar och uppgraderingar lagras lokalt i webbläsaren. Eftersom sparnyckeln ändras i den här versionen kan äldre sparning behöva finnas kvar i webbläsaren; version 7 försöker inte radera den gamla sparningen.
-- ZIP-filen och JavaScript-syntaxen har kontrollerats. En fullständig provkörning på en fysisk Android-mobil är inte gjord, så testa gärna alla tre banorna och kollisionerna efter uppdateringen.
+- Sparade mynt, bilar och uppgraderingar lagras lokalt i webbläsaren. Version 8 försöker läsa sparning från version 7 och tidigare versioner.
+- ZIP-filen och JavaScript-syntaxen har kontrollerats, men spelet är inte provkört på en fysisk Android-mobil i den här ändringen.
