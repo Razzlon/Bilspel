@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#72c8ff">
-<title>Turbo & Vänner – Version 8</title>
+<title>Turbo & Vänner – Version 9</title>
 <style>
   :root { --ui: rgba(12,25,45,.82); --yellow:#ffe45c; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -72,7 +72,7 @@
     <div style="font-size:54px;margin-bottom:8px">🏎️💨</div>
     <h1>Turbo & Vänner</h1>
     <p>Ett färgglatt raceräventyr! Sväng mellan körfälten, susa förbi kompisbilarna och kör över mållinjen.</p>
-    <p><b>Version 8:</b> kör på riktiga ovalbanor! Alla fem bilar tävlar hela loppet, med kollisioner, strandmiljö och arena.</p>
+    <p><b>Version 9:</b> nya karaktärsbilar, längre banor och tre miljöer med olika kurvformer!</p>
     <div class="pickers">
       <label for="trackPick">🏞️ Välj bana<select id="trackPick"><option value="stadium">🏟️ Stora ovalarenan</option><option value="beach">🏖️ Sol, strand och hav</option><option value="forest">🌲 Äventyrsskogen</option></select></label>
       <label for="carPick">🚗 Välj bil<select id="carPick"><option value="red">Turbo (gratis)</option><option value="blue" disabled>Blix (20 mynt)</option><option value="purple" disabled>Plommon (40 mynt)</option></select></label>
@@ -80,7 +80,7 @@
     <div class="upgradeRow"><button id="engineBtn">⚙️ Motor nivå 1<br>Uppgradera: 25 🪙</button><button id="handlingBtn">🛞 Väghållning nivå 1<br>Uppgradera: 25 🪙</button></div>
     <div id="garageNote">Vinn lopp för att tjäna mynt. Köp bil och uppgradera den här!</div>
     <button id="startBtn">STARTA MÄSTERSKAPET!</button>
-    <div class="tiny">Version 8 • vänsterstyrning • automatisk körning • turbo till höger</div>
+    <div class="tiny">Version 9 • karaktärsbilar • varierade banor • turbo till höger</div>
   </div>
 </div>
 <script type="module">
@@ -103,13 +103,13 @@ const positionHud = document.getElementById('position');
 const champHud = document.getElementById('champHud');
 const coinsHud = document.getElementById('coinsHud');
 
-let scene, camera, renderer, player, rivals=[], roadMarks=[], scenery=[];
+let scene, camera, renderer, player, rivals=[], roadMarks=[], roadLines=[], scenery=[];
 let running=false, finished=false, lane=1, elapsed=0, lastTime=0;
 let raceNumber=1, championshipPoints=0, coins=0, championshipOver=false;
 let engineLevel=1, handlingLevel=1, turboUntil=0, turboReadyAt=0;
-const SAVE_KEY='turboVanerSaveV8';
+const SAVE_KEY='turboVanerSaveV9';
 let ownedCars=['red'];
-function loadSave(){ try { const d=JSON.parse(localStorage.getItem(SAVE_KEY)||localStorage.getItem('turboVanerSaveV7')||localStorage.getItem('turboVanerSaveV6')||localStorage.getItem('turboVanerSaveV5')||'{}'); coins=Math.max(0,Number(d.coins)||0); ownedCars=Array.isArray(d.ownedCars)?['red',...d.ownedCars.filter(x=>['blue','purple'].includes(x))]:['red']; engineLevel=Math.max(1,Math.min(5,Number(d.engineLevel)||1)); handlingLevel=Math.max(1,Math.min(5,Number(d.handlingLevel)||1)); } catch(e){ coins=0; ownedCars=['red']; engineLevel=1; handlingLevel=1; } }
+function loadSave(){ try { const d=JSON.parse(localStorage.getItem(SAVE_KEY)||localStorage.getItem('turboVanerSaveV8')||localStorage.getItem('turboVanerSaveV7')||localStorage.getItem('turboVanerSaveV6')||localStorage.getItem('turboVanerSaveV5')||'{}'); coins=Math.max(0,Number(d.coins)||0); ownedCars=Array.isArray(d.ownedCars)?['red',...d.ownedCars.filter(x=>['blue','purple'].includes(x))]:['red']; engineLevel=Math.max(1,Math.min(5,Number(d.engineLevel)||1)); handlingLevel=Math.max(1,Math.min(5,Number(d.handlingLevel)||1)); } catch(e){ coins=0; ownedCars=['red']; engineLevel=1; handlingLevel=1; } }
 function saveProgress(){ try { localStorage.setItem(SAVE_KEY,JSON.stringify({coins,ownedCars,engineLevel,handlingLevel})); } catch(e){} }
 function upgrade(which){ const level=which==='engine'?engineLevel:handlingLevel; const cost=25*level; if(level>=5){garageNote.textContent='Den uppgraderingen är redan på maxnivå!';return;} if(coins<cost){garageNote.textContent=`Du behöver ${cost} mynt för nästa uppgradering.`;sfx(180,.15,'square');return;} coins-=cost; if(which==='engine')engineLevel++;else handlingLevel++; saveProgress();updateProgress();sfx(920,.18,'triangle');garageNote.textContent='Uppgradering köpt och sparad!'; }
 let audioCtx=null;
@@ -118,7 +118,7 @@ function buyOrSelectCar(){ const v=carPick.value; const prices={red:0,blue:20,pu
 
 let groundMesh=null, roadMesh=null, oceanMesh=null;
 const laneX=[-2.25,0,2.25];
-const RX=25, RZ=13, LANE_GAP=2.6;
+const RX=29, RZ=15, LANE_GAP=2.65;
 let playerAngle=0, raceProgress=0, collisionLock=0, lastPlayerPos=new THREE.Vector3();
 let finishGate=null, startStripe=null;
 const mats={};
@@ -134,24 +134,55 @@ function box(parent, w,h,d, color, x,y,z, material=null) {
 }
 function makeCar(color, accent, isPlayer=false) {
   const car=new THREE.Group();
-  box(car,1.25,.48,2.05,color,0,.48,0);
-  box(car,.94,.42,.88,accent,0,.83,-.13);
-  box(car,.76,.29,.12,'#b8edff',0,.87,.34);
-  box(car,1.28,.13,.34,color,0,.75,-.86);
-  // friendly eyes on windshield
-  const eyeWhite=mat('#ffffff'), pupil=mat('#173047');
-  for(const x of [-.22,.22]) {
-    const eye=new THREE.Mesh(new THREE.SphereGeometry(.105,12,10),eyeWhite);
-    eye.position.set(x,.91,.405); car.add(eye);
-    const p=new THREE.Mesh(new THREE.SphereGeometry(.045,10,8),pupil);
-    p.position.set(x+.018,.9,.49); car.add(p);
+  // Keep the first four meshes in the same order: applyCar() recolours these.
+  box(car,1.34,.48,2.25,color,0,.48,0);
+  box(car,.98,.43,.92,accent,0,.83,-.12);
+  box(car,.82,.30,.12,'#b8edff',0,.88,.355);
+  box(car,1.42,.14,.38,color,0,.76,-.91);
+  // Rounded hood and friendly animated-movie-inspired face (original design).
+  const hood=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),mat(color));
+  hood.scale.set(.61,.18,.40); hood.position.set(0,.59,.78); car.add(hood);
+  const eyeWhite=mat('#ffffff'), pupil=mat('#14243a'), shine=mat('#ffffff');
+  for(const x of [-.245,.245]) {
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(.145,16,12),eyeWhite);
+    eye.position.set(x,.94,.425); car.add(eye);
+    const p=new THREE.Mesh(new THREE.SphereGeometry(.068,12,10),pupil);
+    p.position.set(x+.025,.925,.545); car.add(p);
+    const glint=new THREE.Mesh(new THREE.SphereGeometry(.024,8,8),shine);
+    glint.position.set(x+.045,.96,.60); car.add(glint);
+    // Eyebrows give each racer a lively, determined expression.
+    const brow=box(car,.28,.055,.07,'#352a2b',x,.1+1.085,.43);
+    brow.rotation.z=x<0?-.12:.12;
   }
-  const wheelMat=mat('#20252d');
-  for(const x of [-.67,.67]) for(const z of [-.62,.62]) {
-    const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.16,16),wheelMat);
+  // Smile/grille on the front bumper.
+  box(car,.70,.13,.12,'#242a32',0,.39,1.055);
+  box(car,.48,.035,.035,'#ffffff',0,.345,1.12);
+  for(const x of [-.49,.49]) {
+    const lamp=new THREE.Mesh(new THREE.SphereGeometry(.105,12,10),mat('#fff5bd'));
+    lamp.position.set(x,.59,1.035); lamp.scale.set(1,.72,.55); car.add(lamp);
+    const rear=new THREE.Mesh(new THREE.BoxGeometry(.22,.12,.045),mat('#ff453f'));
+    rear.position.set(x,.53,-1.13); car.add(rear);
+    // Side mirrors
+    const mirror=box(car,.16,.10,.20,color,x*1.36,.77,.22);
+    box(car,.12,.075,.055,'#d8f5ff',x*1.36,.79,.325);
+  }
+  // Racing stripe and roof number make rivals easy to recognise.
+  box(car,.13,.035,.86,'#ffffff',0,1.055,-.22);
+  const number=box(car,.34,.035,.27,isPlayer?'#ffe45c':'#ffffff',0,1.065,-.20);
+  number.rotation.x=-.12;
+  // Small spoiler with two supports.
+  for(const x of [-.43,.43]) box(car,.07,.20,.07,'#252a31',x,.82,-.91);
+  box(car,1.18,.10,.26,isPlayer?'#ffe45c':'#252a31',0,.96,-1.0);
+  const wheelMat=mat('#20252d'), rubber=mat('#10151b');
+  for(const x of [-.70,.70]) for(const z of [-.67,.67]) {
+    const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.245,.245,.19,18),wheelMat);
     wheel.rotation.z=Math.PI/2; wheel.position.set(x,.28,z); wheel.castShadow=true; car.add(wheel);
-    const hub=new THREE.Mesh(new THREE.CylinderGeometry(.1,.1,.17,12),mat('#d8e7f4'));
-    hub.rotation.z=Math.PI/2; hub.position.set(x*1.01,.28,z); car.add(hub);
+    const side=new THREE.Mesh(new THREE.CylinderGeometry(.17,.17,.198,16),rubber);
+    side.rotation.z=Math.PI/2; side.position.set(x*1.01,.28,z); car.add(side);
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(.115,.115,.205,12),mat(isPlayer?'#ffe45c':'#d8e7f4'));
+    hub.rotation.z=Math.PI/2; hub.position.set(x*1.02,.28,z); car.add(hub);
+    const hubCenter=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.21,10),mat('#414b59'));
+    hubCenter.rotation.z=Math.PI/2; hubCenter.position.set(x*1.03,.28,z); car.add(hubCenter);
   }
   car.userData.isPlayer=isPlayer;
   return car;
@@ -164,29 +195,34 @@ function makeTree(x,z,scale=1) {
   top.position.y=1.35; g.add(top);
   g.position.set(x,0,z); g.scale.setScalar(scale); g.userData.trackDecoration='forest'; scene.add(g); scenery.push(g);
 }
-function ovalRingGeometry(rxOuter,rzOuter,rxInner,rzInner,segments=180) {
+function trackFactor(a){
+  const t=trackPick ? trackPick.value : 'stadium';
+  if(t==='beach') return 1 + 0.035*Math.sin(2*a)*Math.sin(a);
+  if(t==='forest') return 1 + 0.055*Math.sin(3*a)*Math.sin(a);
+  return 1;
+}
+function ovalRingGeometry(rxOuter,rzOuter,rxInner,rzInner,segments=180){
   const positions=[], indices=[];
   for(let i=0;i<=segments;i++){
-    const a=i/segments*Math.PI*2, c=Math.cos(a), sn=Math.sin(a);
-    positions.push(rxOuter*c,0,rzOuter*sn, rxInner*c,0,rzInner*sn);
+    const a=i/segments*Math.PI*2, c=Math.cos(a), sn=Math.sin(a), f=trackFactor(a);
+    positions.push(rxOuter*c*f,0,rzOuter*sn*f, rxInner*c*f,0,rzInner*sn*f);
     if(i<segments){const k=i*2;indices.push(k,k+1,k+2,k+1,k+3,k+2);}
   }
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setIndex(indices);g.computeVertexNormals();return g;
 }
 function addOvalLine(rx,rz,color,y=.035,thickness=.09){
-  const pts=[];for(let i=0;i<=180;i++){const a=i/180*Math.PI*2;pts.push(new THREE.Vector3(rx*Math.cos(a),y,rz*Math.sin(a)));}
-  const curve=new THREE.CatmullRomCurve3(pts);const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,360,thickness,5,false),mat(color));scene.add(mesh);return mesh;
+  const pts=[];for(let i=0;i<=180;i++){const a=i/180*Math.PI*2,f=trackFactor(a);pts.push(new THREE.Vector3(rx*Math.cos(a)*f,y,rz*Math.sin(a)*f));}
+  const curve=new THREE.CatmullRomCurve3(pts);const mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,360,thickness,5,false),mat(color));scene.add(mesh);roadLines.push({mesh,rx,rz,color,y,thickness});return mesh;
 }
 function ovalPosition(angle,laneIndex=1,extra=0){
-  const offset=(1-laneIndex)*LANE_GAP+extra;
+  const offset=(1-laneIndex)*LANE_GAP+extra, f=trackFactor(angle);
   const rx=RX+offset, rz=RZ+offset*.58;
-  return new THREE.Vector3(rx*Math.cos(angle),0,rz*Math.sin(angle));
+  return new THREE.Vector3(rx*Math.cos(angle)*f,0,rz*Math.sin(angle)*f);
 }
 function setCarOnOval(car,angle,laneIndex=1){
   const p=ovalPosition(angle,laneIndex);car.position.copy(p);
-  const dx=-(RX+(1-laneIndex)*LANE_GAP)*Math.sin(angle);
-  const dz=(RZ+(1-laneIndex)*LANE_GAP*.58)*Math.cos(angle);
-  car.rotation.y=Math.atan2(dx,dz);
+  const ahead=ovalPosition(angle+.002,laneIndex), behind=ovalPosition(angle-.002,laneIndex);
+  car.rotation.y=Math.atan2(ahead.x-behind.x,ahead.z-behind.z);
 }
 function init() {
   scene=new THREE.Scene();scene.background=new THREE.Color('#83d5ff');scene.fog=new THREE.Fog('#83d5ff',65,150);
@@ -194,15 +230,17 @@ function init() {
   renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=false;renderer.outputColorSpace=THREE.SRGBColorSpace;root.appendChild(renderer.domElement);
   scene.add(new THREE.HemisphereLight('#ffffff','#6a9c5a',2.0));const sun=new THREE.DirectionalLight('#ffffff',2.2);sun.position.set(-15,30,15);scene.add(sun);
   groundMesh=new THREE.Mesh(new THREE.PlaneGeometry(220,220),mat('#66bd62'));groundMesh.rotation.x=-Math.PI/2;groundMesh.position.y=-.15;scene.add(groundMesh);
-  roadMesh=new THREE.Mesh(ovalRingGeometry(30,18,20,8),mat('#4a5260'));roadMesh.position.y=0;scene.add(roadMesh);
+  roadMesh=new THREE.Mesh(ovalRingGeometry(35,21,23,9),mat('#4a5260'));roadMesh.position.y=0;scene.add(roadMesh);
   // Three concentric lane guides follow the oval rather than scrolling down a straight road.
-  addOvalLine(27.3,16.25,'#fff2c7',.045,.11);addOvalLine(24.8,14.7,'#fff6c9',.045,.07);addOvalLine(22.2,13.15,'#fff6c9',.045,.07);addOvalLine(20.1,8.1,'#fff2c7',.045,.11);
+  addOvalLine(32,19.2,'#fff2c7',.045,.11);addOvalLine(29.3,17.4,'#fff6c9',.045,.07);addOvalLine(26.6,15.6,'#fff6c9',.045,.07);addOvalLine(23.2,9.2,'#fff2c7',.045,.11);
+  // Extra short painted markers make the racing lanes easier to read at speed.
+  for(let i=0;i<48;i++){const a=i/48*Math.PI*2;for(const rr of [27.9,30.6]){const mark=box(scene,.12,.035,.68,'#fff8db',rr*Math.cos(a),.055,(rr*.52)*Math.sin(a));mark.rotation.y=-a;mark.userData.trackAngle=a;mark.userData.trackRadius=rr;roadMarks.push(mark);}}
   // Start/finish stripe crosses the whole track at the front of the oval.
   startStripe=new THREE.Group();for(let i=0;i<20;i++)for(let j=0;j<2;j++)box(startStripe,.48,.045,1.15,(i+j)%2?'#ffffff':'#18202b',-4.75+i*.5,.06,-.55+j*.58);startStripe.position.set(RX,0,0);scene.add(startStripe);
   finishGate=new THREE.Group();box(finishGate,10,.22,.35,'#ffffff',0,4.1,0);box(finishGate,.3,4.1,.4,'#ffcf35',-4.85,2,0);box(finishGate,.3,4.1,.4,'#ffcf35',4.85,2,0);for(let i=0;i<16;i++)box(finishGate,.6,.22,.4,i%2?'#20252d':'#ffffff',-4.5+i*.6,4.1,.01);box(finishGate,3.8,.8,.3,'#f04438',0,3.25,0);finishGate.position.set(RX,0,0);finishGate.visible=true;scene.add(finishGate);
   // A packed stadium surrounds the oval. Small colourful spectators are deliberately low-poly for phones.
   for(let i=0;i<22;i++){
-    const a=i/22*Math.PI*2,x=34*Math.cos(a),z=21*Math.sin(a);
+    const a=i/22*Math.PI*2,x=39*Math.cos(a),z=24*Math.sin(a);
     const stand=box(scene,8,2.8,5,['#ffca45','#f08b36','#5c91d9'][i%3],x,1.2,z);stand.rotation.y=-a;stand.userData.trackDecoration='stadium';scenery.push(stand);
     for(let row=0;row<3;row++)for(let j=0;j<7;j++){
       const crowdColors=['#ff4b5c','#ffe45c','#2f9bff','#ffffff','#32c875','#a66cff'];
@@ -214,7 +252,7 @@ function init() {
   // Decorative scenery outside the track; beach adds ocean, sand, parasols and loungers.
   oceanMesh=new THREE.Mesh(new THREE.PlaneGeometry(160,220),mat('#24bfe8'));oceanMesh.rotation.x=-Math.PI/2;oceanMesh.position.set(95,-.1,0);scene.add(oceanMesh);
   for(let i=0;i<20;i++){
-    const a=i/20*Math.PI*2,x=39*Math.cos(a),z=24*Math.sin(a);
+    const a=i/20*Math.PI*2,x=44*Math.cos(a),z=28*Math.sin(a);
     if(i%2===0)makeTree(x,z,1.2);
   }
   player=makeCar('#f04438','#b9edff',true);scene.add(player);
@@ -260,6 +298,9 @@ function applyTrack() {
     forest:{sky:'#9bdcff',ground:'#398b48',road:'#454d54',fog:'#9bdcff'}
   };
   const t=tracks[trackPick.value]||tracks.stadium;scene.background.set(t.sky);scene.fog.color.set(t.fog);groundMesh.material=mat(t.ground);roadMesh.material=mat(t.road);
+  if(roadMesh){roadMesh.geometry.dispose();roadMesh.geometry=ovalRingGeometry(35,21,23,9);}
+  roadLines.forEach(({mesh,rx,rz,color,y,thickness})=>{const pts=[];for(let i=0;i<=180;i++){const a=i/180*Math.PI*2,f=trackFactor(a);pts.push(new THREE.Vector3(rx*Math.cos(a)*f,y,rz*Math.sin(a)*f));}mesh.geometry.dispose();mesh.geometry=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),360,thickness,5,false);});
+  roadMarks.forEach((m,i)=>{const a=m.userData.trackAngle||0,rr=m.userData.trackRadius||27.9,f=trackFactor(a);m.position.set(rr*Math.cos(a)*f,.055,rr*.52*Math.sin(a)*f);});
   oceanMesh.visible=trackPick.value==='beach';
   scenery.forEach(o=>{if(o.userData.trackDecoration)o.visible=(o.userData.trackDecoration===trackPick.value);});
   // Add beach props once, or forest rocks/trees once, with track-specific visibility.
@@ -273,6 +314,8 @@ function applyTrack() {
     }
   }
   scenery.forEach(o=>{if(o.userData.trackDecoration)o.visible=o.userData.trackDecoration===trackPick.value;});
+  // Track identity: beach gets coral/turquoise kerbs; forest gets green/cream kerbs.
+  roadMarks.forEach((m,i)=>{ if(m.material && m.material.color){ const beach=trackPick.value==='beach', forest=trackPick.value==='forest'; m.material=mat(beach?(i%2?'#ff8066':'#fff1c9'):forest?(i%2?'#a8d66d':'#f2f0d2'):(i%2?'#fff8db':'#ffe45c')); } });
 }
 function applyCar() {
   if(!player) return;
@@ -284,6 +327,7 @@ function applyCar() {
   if(player.children[0]) player.children[0].material=mat(c.body);
   if(player.children[1]) player.children[1].material=mat(c.accent);
   if(player.children[3]) player.children[3].material=mat(c.body);
+  if(player.children[4]) player.children[4].material=mat(c.body);
 }
 function startRace() {
   if(championshipOver) { raceNumber=1; championshipPoints=0; championshipOver=false; }
@@ -328,7 +372,7 @@ function animate(t) {
       const step=.34*pace*dt;playerAngle+=step;raceProgress=playerAngle/(Math.PI*2);
       // Lane buttons move between inner, middle and outer oval lanes.
       const target=ovalPosition(playerAngle,lane);player.position.lerp(target,Math.min(1,dt*(7+handlingLevel*1.1)));
-      const tangent=Math.atan2(-RX*Math.sin(playerAngle),RZ*Math.cos(playerAngle));player.rotation.y=tangent;
+      const ahead=ovalPosition(playerAngle+.002,lane), behind=ovalPosition(playerAngle-.002,lane);player.rotation.y=Math.atan2(ahead.x-behind.x,ahead.z-behind.z);
       rivals.forEach((c,i)=>{
         const rivalStep=.34*c.userData.basePace*dt;c.userData.phase+=rivalStep;
         if(elapsed>c.userData.nextMove){c.userData.targetLane=Math.floor(Math.random()*3);c.userData.nextMove=elapsed+2.5+Math.random()*3;}
