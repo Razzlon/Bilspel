@@ -41,6 +41,15 @@
   .tiny { font-size:12px; opacity:.72; margin-top:14px; }
   @media (min-width:700px) { #controls { max-width:700px; margin:auto; } }
 </style>
+
+<link rel="manifest" href="./manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Turbo & Vänner">
+<link rel="icon" href="./icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+
 </head>
 <body>
 <div id="game"></div>
@@ -352,5 +361,12 @@ applyTrack();
 updateProgress();
 requestAnimationFrame(animate);
 </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('./service-worker.js').catch(() => {}); });
+}
+</script>
+
 </body>
 </html>

@@ -17,3 +17,9 @@ VIKTIGT
 - Spelet använder Three.js från ett CDN och behöver internet när spelet laddas.
 - Sparade mynt, bilar och uppgraderingar lagras lokalt i webbläsaren. Version 8 försöker läsa sparning från version 7 och tidigare versioner.
 - ZIP-filen och JavaScript-syntaxen har kontrollerats, men spelet är inte provkört på en fysisk Android-mobil i den här ändringen.
+
+
+PWA / ANDROID-APP-FÖRBEREDELSE
+Den här mappen innehåller även manifest.json, service-worker.js och ikoner.
+När dessa filer publiceras i samma GitHub Pages-mapp som index.html kan webbplatsen kontrolleras i PWABuilder och paketeras som Android-app.
+Obs: spelet använder Three.js från ett externt CDN, så själva spelet kräver internetanslutning. Service workern innebär inte att hela spelet fungerar offline.
