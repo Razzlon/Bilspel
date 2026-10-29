@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#72c8ff">
-<title>Turbo & Vänner – Version 12 (räddning)</title>
+<title>Turbo & Vänner – Version 10</title>
 <style>
   :root { --ui: rgba(12,25,45,.82); --yellow:#ffe45c; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -72,7 +72,7 @@
     <div style="font-size:54px;margin-bottom:8px">🏎️💨</div>
     <h1>Turbo & Vänner</h1>
     <p>Ett färgglatt raceräventyr! Sväng mellan körfälten, susa förbi kompisbilarna och kör över mållinjen.</p>
-    <p><b>Version 12:</b> stabil version med återställning av sparade framsteg.</p>
+    <p><b>Version 10:</b> förbättrade 3D-bilar, längre banor och tre olika miljöer!</p>
     <div class="pickers">
       <label for="trackPick">🏞️ Välj bana<select id="trackPick"><option value="stadium">🏟️ Stora ovalarenan</option><option value="beach">🏖️ Sol, strand och hav</option><option value="forest">🌲 Äventyrsskogen</option></select></label>
       <label for="carPick">🚗 Välj bil<select id="carPick"><option value="red">Turbo (gratis)</option><option value="blue" disabled>Blix (20 mynt)</option><option value="purple" disabled>Plommon (40 mynt)</option></select></label>
@@ -80,7 +80,7 @@
     <div class="upgradeRow"><button id="engineBtn">⚙️ Motor nivå 1<br>Uppgradera: 25 🪙</button><button id="handlingBtn">🛞 Väghållning nivå 1<br>Uppgradera: 25 🪙</button></div>
     <div id="garageNote">Vinn lopp för att tjäna mynt. Köp bil och uppgradera den här!</div>
     <button id="startBtn">STARTA MÄSTERSKAPET!</button>
-    <div class="tiny">Version 12 • stabil återställningsversion • turbo till höger</div>
+    <div class="tiny">Version 10 • nya 3D-karaktärsbilar • längre banor • turbo till höger</div>
   </div>
 </div>
 <script type="module">
@@ -108,30 +108,9 @@ let scene, camera, renderer, player, rivals=[], roadMarks=[], roadLines=[], scen
 let running=false, finished=false, lane=1, elapsed=0, lastTime=0;
 let raceNumber=1, championshipPoints=0, coins=0, championshipOver=false;
 let engineLevel=1, handlingLevel=1, turboUntil=0, turboReadyAt=0;
-// Use a stable save key and recover the best valid save from earlier versions.
 const SAVE_KEY='turboVanerSaveV10';
 let ownedCars=['red'];
-function loadSave(){
-  try {
-    const keys=['turboVanerSaveV11','turboVanerSaveV10','turboVanerSaveV9','turboVanerSaveV8','turboVanerSaveV7','turboVanerSaveV6','turboVanerSaveV5'];
-    let best=null, bestScore=-1;
-    for(const key of keys){
-      try {
-        const raw=localStorage.getItem(key); if(!raw) continue;
-        const d=JSON.parse(raw); if(!d || typeof d!=='object') continue;
-        const owned=Array.isArray(d.ownedCars)?d.ownedCars.filter(x=>['red','blue','purple'].includes(x)):['red'];
-        const score=Math.max(0,Number(d.coins)||0)+(Math.max(1,Number(d.engineLevel)||1)-1)*100+(Math.max(1,Number(d.handlingLevel)||1)-1)*100+Math.max(0,owned.filter(x=>x!=='red').length)*500;
-        if(score>bestScore){best=d;bestScore=score;}
-      } catch(e) {}
-    }
-    const d=best||{};
-    coins=Math.max(0,Number(d.coins)||0);
-    ownedCars=Array.isArray(d.ownedCars)?['red',...d.ownedCars.filter(x=>['blue','purple'].includes(x))]:['red'];
-    engineLevel=Math.max(1,Math.min(5,Number(d.engineLevel)||1));
-    handlingLevel=Math.max(1,Math.min(5,Number(d.handlingLevel)||1));
-    saveProgress();
-  } catch(e){ coins=0; ownedCars=['red']; engineLevel=1; handlingLevel=1; }
-}
+function loadSave(){ try { const d=JSON.parse(localStorage.getItem(SAVE_KEY)||localStorage.getItem('turboVanerSaveV8')||localStorage.getItem('turboVanerSaveV7')||localStorage.getItem('turboVanerSaveV6')||localStorage.getItem('turboVanerSaveV5')||'{}'); coins=Math.max(0,Number(d.coins)||0); ownedCars=Array.isArray(d.ownedCars)?['red',...d.ownedCars.filter(x=>['blue','purple'].includes(x))]:['red']; engineLevel=Math.max(1,Math.min(5,Number(d.engineLevel)||1)); handlingLevel=Math.max(1,Math.min(5,Number(d.handlingLevel)||1)); } catch(e){ coins=0; ownedCars=['red']; engineLevel=1; handlingLevel=1; } }
 function saveProgress(){ try { localStorage.setItem(SAVE_KEY,JSON.stringify({coins,ownedCars,engineLevel,handlingLevel})); } catch(e){} }
 function upgrade(which){ const level=which==='engine'?engineLevel:handlingLevel; const cost=25*level; if(level>=5){garageNote.textContent='Den uppgraderingen är redan på maxnivå!';return;} if(coins<cost){garageNote.textContent=`Du behöver ${cost} mynt för nästa uppgradering.`;sfx(180,.15,'square');return;} coins-=cost; if(which==='engine')engineLevel++;else handlingLevel++; saveProgress();updateProgress();sfx(920,.18,'triangle');garageNote.textContent='Uppgradering köpt och sparad!'; }
 let audioCtx=null;
@@ -370,19 +349,23 @@ function applyCar() {
   if(player.children[2]) player.children[2].material=accent;
 }
 function startRace() {
+  // Visa omedelbart att knappen svarar, så ett fel i banbyte inte låser menyn.
   if(championshipOver) { raceNumber=1; championshipPoints=0; championshipOver=false; }
-  applyTrack(); applyCar(); updateProgress();
   elapsed=0; lane=1; finished=false; running=true; raceProgress=0; playerAngle=0; collisionLock=0;
-  player.position.set(RX,0,0); player.rotation.y=0;
+  startScreen.style.display='none';
+  message.textContent='Förbereder loppet…';
+  try { applyTrack(); } catch(err) { console.error('Track setup error:', err); }
+  try { applyCar(); } catch(err) { console.error('Car setup error:', err); }
+  try { updateProgress(); } catch(err) { console.error('Progress update error:', err); }
+  try { player.position.set(RX,0,0); player.rotation.y=0; } catch(err) { console.error('Player setup error:', err); }
   turboUntil=0; turboReadyAt=0; turboBtn.textContent='⚡ TURBO';
   if(finishGate) finishGate.visible=false;
-  // Alla fem bilar står på startlinjen, fördelade över banans tre körspår.
-  rivals.forEach((c,i)=>{ c.userData.phase=(i+1)*.075; c.userData.targetLane=i%3; c.userData.bumpUntil=0; setCarOnOval(c,c.userData.phase,c.userData.targetLane); });
-  startScreen.style.display='none';
-  message.innerHTML='3'; sfx(440,.13);
-  setTimeout(()=>{if(running&&!finished){message.textContent='2';sfx(520,.13)}},650);
-  setTimeout(()=>{if(running&&!finished){message.textContent='1';sfx(620,.13)}},1300);
-  setTimeout(()=>{if(running&&!finished){message.innerHTML='KÖR!<span id="submessage">Nu startar racet!</span>';sfx(880,.25,'triangle')}},1950);
+  // Om en motståndare har ett fel ska det inte stoppa hela loppet.
+  rivals.forEach((c,i)=>{ try { c.userData.phase=(i+1)*.075; c.userData.targetLane=i%3; c.userData.bumpUntil=0; setCarOnOval(c,c.userData.phase,c.userData.targetLane); } catch(err) { console.error('Opponent setup error:',i,err); } });
+  message.innerHTML='3'; try { sfx(440,.13); } catch(err) {}
+  setTimeout(()=>{if(running&&!finished){message.textContent='2';try{sfx(520,.13)}catch(err){}}},650);
+  setTimeout(()=>{if(running&&!finished){message.textContent='1';try{sfx(620,.13)}catch(err){}}},1300);
+  setTimeout(()=>{if(running&&!finished){message.innerHTML='KÖR!<span id="submessage">Nu startar racet!</span>';try{sfx(880,.25,'triangle')}catch(err){}}},1950);
   setTimeout(()=>{if(running&&!finished) message.textContent=''},2700);
 }
 function finishRace() {
