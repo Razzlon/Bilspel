@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#72c8ff">
-<title>Turbo & Vänner – Version 9</title>
+<title>Turbo & Vänner – Grafikuppdatering 1</title>
 <style>
   :root { --ui: rgba(12,25,45,.82); --yellow:#ffe45c; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -72,7 +72,7 @@
     <div style="font-size:54px;margin-bottom:8px">🏎️💨</div>
     <h1>Turbo & Vänner</h1>
     <p>Ett färgglatt raceräventyr! Sväng mellan körfälten, susa förbi kompisbilarna och kör över mållinjen.</p>
-    <p><b>Version 9:</b> nya karaktärsbilar, längre banor och tre miljöer med olika kurvformer!</p>
+    <p><b>Version 9:</b> uppgraderade karaktärsbilar, längre banor och tre miljöer med olika kurvformer!</p>
     <div class="pickers">
       <label for="trackPick">🏞️ Välj bana<select id="trackPick"><option value="stadium">🏟️ Stora ovalarenan</option><option value="beach">🏖️ Sol, strand och hav</option><option value="forest">🌲 Äventyrsskogen</option></select></label>
       <label for="carPick">🚗 Välj bil<select id="carPick"><option value="red">Turbo (gratis)</option><option value="blue" disabled>Blix (20 mynt)</option><option value="purple" disabled>Plommon (40 mynt)</option></select></label>
@@ -80,7 +80,7 @@
     <div class="upgradeRow"><button id="engineBtn">⚙️ Motor nivå 1<br>Uppgradera: 25 🪙</button><button id="handlingBtn">🛞 Väghållning nivå 1<br>Uppgradera: 25 🪙</button></div>
     <div id="garageNote">Vinn lopp för att tjäna mynt. Köp bil och uppgradera den här!</div>
     <button id="startBtn">STARTA MÄSTERSKAPET!</button>
-    <div class="tiny">Version 9 • karaktärsbilar • varierade banor • turbo till höger</div>
+    <div class="tiny">Version 9 • uppgraderade 3D-bilar • varierade banor • turbo till höger</div>
   </div>
 </div>
 <script type="module">
@@ -135,10 +135,14 @@ function box(parent, w,h,d, color, x,y,z, material=null) {
 function makeCar(color, accent, isPlayer=false) {
   const car=new THREE.Group();
   // Keep the first four meshes in the same order: applyCar() recolours these.
-  box(car,1.34,.48,2.25,color,0,.48,0);
-  box(car,.98,.43,.92,accent,0,.83,-.12);
+  // Smooth sculpted body and raised cabin: more car-like proportions.
+  const shell=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),mat(color));
+  shell.scale.set(.70,.31,1.18); shell.position.set(0,.48,0); shell.castShadow=true; car.add(shell);
+  const cabin=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),mat(accent));
+  cabin.scale.set(.53,.39,.58); cabin.position.set(0,.78,-.16); cabin.castShadow=true; car.add(cabin);
   box(car,.82,.30,.12,'#b8edff',0,.88,.355);
-  box(car,1.42,.14,.38,color,0,.76,-.91);
+  // Rear deck and front bumper keep their original positions for the paint selector.
+  box(car,1.42,.14,.38,color,0,.66,-.91);
   // Rounded hood and friendly animated-movie-inspired face (original design).
   const hood=new THREE.Mesh(new THREE.SphereGeometry(1,18,12),mat(color));
   hood.scale.set(.61,.18,.40); hood.position.set(0,.59,.78); car.add(hood);
@@ -154,9 +158,18 @@ function makeCar(color, accent, isPlayer=false) {
     const brow=box(car,.28,.055,.07,'#352a2b',x,.1+1.085,.43);
     brow.rotation.z=x<0?-.12:.12;
   }
-  // Smile/grille on the front bumper.
+  // Chrome-like grille and curved friendly smile.
   box(car,.70,.13,.12,'#242a32',0,.39,1.055);
   box(car,.48,.035,.035,'#ffffff',0,.345,1.12);
+  box(car,.18,.045,.035,'#aebbc8',-.22,.405,1.125);
+  box(car,.18,.045,.035,'#aebbc8',.22,.405,1.125);
+  // Side windows and lower door details.
+  for(const side of [-1,1]) {
+    const windowMesh=new THREE.Mesh(new THREE.SphereGeometry(1,14,10),mat('#b9eaff',.28));
+    windowMesh.scale.set(.035,.19,.39); windowMesh.position.set(side*.535,.82,-.18); car.add(windowMesh);
+    box(car,.025,.035,.48,'#dce8ef',side*.66,.43,-.08);
+    box(car,.045,.10,.07,'#f4f7fa',side*.70,.55,-.12);
+  }
   for(const x of [-.49,.49]) {
     const lamp=new THREE.Mesh(new THREE.SphereGeometry(.105,12,10),mat('#fff5bd'));
     lamp.position.set(x,.59,1.035); lamp.scale.set(1,.72,.55); car.add(lamp);
@@ -175,14 +188,20 @@ function makeCar(color, accent, isPlayer=false) {
   box(car,1.18,.10,.26,isPlayer?'#ffe45c':'#252a31',0,.96,-1.0);
   const wheelMat=mat('#20252d'), rubber=mat('#10151b');
   for(const x of [-.70,.70]) for(const z of [-.67,.67]) {
-    const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.245,.245,.19,18),wheelMat);
-    wheel.rotation.z=Math.PI/2; wheel.position.set(x,.28,z); wheel.castShadow=true; car.add(wheel);
-    const side=new THREE.Mesh(new THREE.CylinderGeometry(.17,.17,.198,16),rubber);
-    side.rotation.z=Math.PI/2; side.position.set(x*1.01,.28,z); car.add(side);
-    const hub=new THREE.Mesh(new THREE.CylinderGeometry(.115,.115,.205,12),mat(isPlayer?'#ffe45c':'#d8e7f4'));
-    hub.rotation.z=Math.PI/2; hub.position.set(x*1.02,.28,z); car.add(hub);
-    const hubCenter=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,.21,10),mat('#414b59'));
-    hubCenter.rotation.z=Math.PI/2; hubCenter.position.set(x*1.03,.28,z); car.add(hubCenter);
+    const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.285,.285,.22,24),rubber);
+    wheel.rotation.z=Math.PI/2; wheel.position.set(x,.29,z); wheel.castShadow=true; car.add(wheel);
+    const side=new THREE.Mesh(new THREE.CylinderGeometry(.205,.205,.235,20),wheelMat);
+    side.rotation.z=Math.PI/2; side.position.set(x*1.01,.29,z); car.add(side);
+    const hub=new THREE.Mesh(new THREE.CylinderGeometry(.155,.155,.245,16),mat(isPlayer?'#ffe45c':'#d8e7f4',.32));
+    hub.rotation.z=Math.PI/2; hub.position.set(x*1.02,.29,z); car.add(hub);
+    const hubCenter=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.25,12),mat('#414b59',.3));
+    hubCenter.rotation.z=Math.PI/2; hubCenter.position.set(x*1.03,.29,z); car.add(hubCenter);
+    // Five simple spokes make the alloy wheels read clearly while racing.
+    for(let spoke=0;spoke<5;spoke++) {
+      const a=spoke*Math.PI*2/5;
+      const bar=box(car,.045,.19,.035,'#f5f8fb',x*1.04,.29+Math.cos(a)*.085,z+Math.sin(a)*.085);
+      bar.rotation.x=a;
+    }
   }
   car.userData.isPlayer=isPlayer;
   return car;
